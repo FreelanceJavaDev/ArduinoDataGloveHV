@@ -1,0 +1,5 @@
+﻿  ArduinoVRGloveDriver.cpp
+c:\users\bayou\documents\honors vr glove\arduinovrglovedriver\arduinovrglovedriver\arduinovrglovedriver.cpp(19): warning C4305: '=': truncation from 'WORD' to 'BYTE'
+c:\users\bayou\documents\honors vr glove\arduinovrglovedriver\arduinovrglovedriver\arduinovrglovedriver.cpp(19): warning C4309: '=': truncation of constant value
+c:\users\bayou\documents\honors vr glove\arduinovrglovedriver\arduinovrglovedriver\arduinovrglovedriver.cpp(24): warning C4101: 'read': unreferenced local variable
+c:\users\bayou\documents\honors vr glove\arduinovrglovedriver\arduinovrglovedriver\arduinovrglovedriver.cpp(23): warning C4101: 'buffer': unreferenced local variable
