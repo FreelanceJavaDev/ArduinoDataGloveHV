@@ -7,12 +7,13 @@ public class HandModel : MonoBehaviour
     private string[] lastGyro; //check if gyro has changed
     private string[] lastAccel; //check if acceleration has changed
     private string[] lastPos; //check if position has changed.
-    public GameObject hand;
+    private bool updatePos, updateGyro, updateOrientation;
     private static float AXIS_CORRECTION = -90.0F; //because of unity's 3D axis
+    private Vector3 INITAL_POS = new Vector3(0.2F, 0.9F, -9.5F);
 
     //Handles Messages sent from Arduino Controller.
     void OnMessageArrived(string msg) {
-        Debug.Log("Message arrived: " + msg);
+        //Debug.Log("Message arrived: " + msg);
         parseMessage(msg);
     }
 
@@ -23,6 +24,10 @@ public class HandModel : MonoBehaviour
          else { Debug.Log("Connection Terminated or failed to connect."); }
     }
 
+
+   
+
+
     // Start is called before the first frame update
     //ensure string arrays are valid and set to defaults. Defualts could be null or empty
     void Start()
@@ -31,41 +36,47 @@ public class HandModel : MonoBehaviour
         lastAccel = new string[3];
         lastGyro = new string[3];
         lastPos = new string[3];
+        updateOrientation = false;
+        updateGyro = false;
+        updatePos = false;
     }
+
 
     // Update is called once per frame
     void Update()
     {
-        
+        updateGameObject(updatePos, "_P");
+        //updateGameObject(updateGyro, "_G"); //curse you unity.  I'll deal with this later.
     }
 
     //format is x,y,z from sensors, translate to x,z,y
     //x->x, z->y, y->z for no particular reason other than it's Unity
     private void parseMessage(string msg) {
         string updateType = msg.Substring(0,2);
-        msg.Remove(msg.Length -1, msg.Length);
-        msg.Remove(0, 2);
+        string temp = msg.Remove(msg.LastIndexOf('_'));
+        string data = temp.Remove(0, 2);
         string[] vector = new string[3];
         switch(updateType) {
             case "_O": //orientation
-                vector = Regex.Split(msg, ",");
+                vector = Regex.Split(data, ",");
                 Debug.Log("Orientation update: x:" + vector[0] + ", z:" + vector[1] + ", y:" + vector[2]);
-                updateGameObject(updateLastOrientation(vector), "_O");
+                updateOrientation = updateLastOrientation(vector);
                 break;
             case "_G": //gyroscope
-                vector = Regex.Split(msg, ",");
+                vector = Regex.Split(data, ",");
                 Debug.Log("Gyro Update: x:" + vector[0] + ", z:" + vector[1] + ", y:" + vector[2]);
-                updateLastGyro(vector);
+                updateGyro = updateLastGyro(vector);
+ 
                 break;
             case "_A": //accelerometer
-                vector = Regex.Split(msg, ",");
+                vector = Regex.Split(data, ",");
                 Debug.Log("Accelerometer Update:  x:" + vector[0] + ", z:" + vector[1] + ", y:" + vector[2]);
                 updateLastAcceleration(vector);
                 break;
             case "_P": //position
-                vector = Regex.Split(msg, ",");
+                vector = Regex.Split(data, ",");
                 Debug.Log("Pos Update:  dx:" + vector[0] + ", dz:" + vector[1] + ", dy:" + vector[2]);
-                updateGameObject(updateLastPosition(vector), "_P");
+                updatePos = updateLastPosition(vector);
                 break;
             default: break;
         }
@@ -76,20 +87,38 @@ public class HandModel : MonoBehaviour
     //position is a delta offset, must be addes to object position.
     private void updateGameObject(bool needsUpdate, string updateContext) {
         if(needsUpdate) {
-            Transform transform = hand.GetComponent<Transform>();
             Vector3 temp;
             switch (updateContext) {
                 case "_O":
-                    temp.x = float.Parse(lastOrientation[0]) + AXIS_CORRECTION;
+                    temp.x = float.Parse(lastOrientation[0]);
                     temp.z = float.Parse(lastOrientation[1]);
-                    temp.y = float.Parse(lastOrientation[2]) + AXIS_CORRECTION;
-                    transform.Rotate(temp);
+                    temp.y = float.Parse(lastOrientation[2]);
+                    temp.x = (temp.x < 355.0F) ? temp.x : 0;
+                    temp.y = (temp.y < 355.0F) ? temp.y : 0;
+                    temp.z = (temp.z < 355.0F) ? temp.z : 0;
+
+                    temp.y += AXIS_CORRECTION;
+                    temp.z += AXIS_CORRECTION;
+                    this.transform.rotation.eulerAngles.Set(temp.x, temp.y, temp.z);
+                    updatePos = false;
+                    break;
+                case "_G":
+                    temp.x = float.Parse(lastGyro[0]);
+                    temp.z = float.Parse(lastGyro[1]);
+                    temp.y = float.Parse(lastGyro[2]);
+                    temp.x = (temp.x > 1.0F || temp.x < -1.0F) ? temp.x : 0;
+                    temp.y = (temp.y > 1.0F || temp.y < -1.0F) ? temp.y : 0;
+                    temp.z = (temp.z > 1.0F || temp.z < -1.0F) ? temp.z : 0;
+                    this.transform.Rotate(temp);
+                    updateGyro = false;
                     break;
                 case "_P":
-                    temp.x = float.Parse(lastPos[0]);
-                    temp.z = float.Parse(lastPos[1]);
-                    temp.y = float.Parse(lastPos[2]);
-                    transform.position += temp;
+                    temp.x = (float.Parse(lastPos[0]))+ INITAL_POS.x; 
+                    temp.z = (float.Parse(lastPos[1])) + INITAL_POS.z;
+                    temp.y = (float.Parse(lastPos[2])) + INITAL_POS.y;
+
+                    this.transform.position = temp;
+                    updatePos = false;
                     break;
                 default: break;
             }

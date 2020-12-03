@@ -13,12 +13,14 @@
  */
 
  /* Set the delay between fresh samples */
-uint16_t BNO055_SAMPLERATE_DELAY_MS = 100; //shortened to 11ms for actuak
+uint16_t BNO055_SAMPLERATE_DELAY_MS = 100; //shortened to 11ms for actual
 uint16_t PRINT_DELAY_MS = 500; //testing, shortened to 55 for actual
-const uint8_t PRECISION = 6;
+const uint8_t PRECISION = 3;
 uint8_t printCount = 0;
 bool activateHaptics = false; //activate capacitor
 double dx, dy, dz;
+//const uint8_t calibrationData[22] = {0x9,0x0,0xCF,0xFF,0xF4,0xFF,0xB4,0xFD,0xD,0x0,0xC7,0xFF,0xFF,0xFF,0xFD,0xFF,0x1,0x0,0xE8,0x3,0xDD,0x2};
+
 
 //velocity = accel*dt (dt in seconds)
 //position = 0.5*accel*dt^2
@@ -52,7 +54,7 @@ void capacitorRelease() {
 
 //setup hardware, runs once
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   pinMode(capacitor_pin, OUTPUT);
   pinMode(piezo_pin, OUTPUT);
   digitalWrite(piezo_pin, LOW);
@@ -68,6 +70,8 @@ void setup() {
     Serial.println("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
     while (1);
   }
+  
+  //bno.setSensorOffsets(calibrationData);
   dx = 0;
   dy = 0;
   dz = 0;
@@ -80,6 +84,7 @@ void loop() {
   
   unsigned long t_0 = micros();
   sensors_event_t orientationData , angVelocityData , linearAccelData;
+  //imu::Vector<3> euler = bno.getQuat().toEuler();
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
   bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
@@ -87,14 +92,19 @@ void loop() {
   //absolute postion determined in Unity
   dx = dx + ACCEL_POS_TRANSLATION * linearAccelData.acceleration.x;
   dy = dy + ACCEL_POS_TRANSLATION * linearAccelData.acceleration.y;
-  dy = dy + ACCEL_POS_TRANSLATION * linearAccelData.acceleration.y;
+  dz = dz + ACCEL_POS_TRANSLATION * linearAccelData.acceleration.z;
   
   if(printCount * BNO055_SAMPLERATE_DELAY_MS >= PRINT_DELAY_MS) {
     printSensor(&orientationData, "_O");
+    Serial.flush();
+    //String orientationPrint = "_O" + String(euler[0], PRECISION)+ "," + String(euler[1], PRECISION) + "," + String(euler[2], PRECISION) + "_";
     printSensor(&angVelocityData, "_G");
+    Serial.flush();
     printSensor(&linearAccelData, "_A");
+    Serial.flush();
     String posPrint = "_P" + String(dx, PRECISION) + "," + String(dy, PRECISION) + "," + String(dz, PRECISION) + "_";
     Serial.println(posPrint);
+    Serial.flush();
     printCount = 0;
     dx = 0;
     dy = 0;
@@ -143,7 +153,7 @@ void printSensor(sensors_event_t* event, const String prefix) {
         break;
       case SENSOR_TYPE_GYROSCOPE:
       case SENSOR_TYPE_ROTATION_VECTOR: //gyro & rotation are the same thing
-        output += String(event->gyro.x, 6) + "," + String(event->gyro.y, PRECISION) + "," + String(event->gyro.z, PRECISION);
+        output += String(event->gyro.x, PRECISION) + "," + String(event->gyro.y, PRECISION) + "," + String(event->gyro.z, PRECISION);
         break;
       default: return; //something's gone wrong
     }
