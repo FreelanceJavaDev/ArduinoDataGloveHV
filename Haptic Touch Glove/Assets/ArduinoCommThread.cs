@@ -8,7 +8,7 @@ using UnityEngine;
 public class ArduinoCommThread
 {
     private string portName; //COM5
-    private int baudRate; //115200
+    private int baudRate; //9600
     private int reconnectDelay;
     private int messageQueueSize; //1 for serial
     private SerialPort comPort;

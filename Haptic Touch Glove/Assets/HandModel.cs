@@ -12,10 +12,7 @@ public class HandModel : MonoBehaviour
     private Vector3 INITAL_POS = new Vector3(0.2F, 0.9F, -9.5F);
 
     //Handles Messages sent from Arduino Controller.
-    void OnMessageArrived(string msg) {
-        //Debug.Log("Message arrived: " + msg);
-        parseMessage(msg);
-    }
+    void OnMessageArrived(string msg) { parseMessage(msg); }
 
     //handles Connection event and disconnection events from Arduino Controller
     void OnConnectionEvent(bool success) {
@@ -23,10 +20,6 @@ public class HandModel : MonoBehaviour
         { Debug.Log("Connection Established."); }
          else { Debug.Log("Connection Terminated or failed to connect."); }
     }
-
-
-   
-
 
     // Start is called before the first frame update
     //ensure string arrays are valid and set to defaults. Defualts could be null or empty
@@ -40,7 +33,6 @@ public class HandModel : MonoBehaviour
         updateGyro = false;
         updatePos = false;
     }
-
 
     // Update is called once per frame
     void Update()
